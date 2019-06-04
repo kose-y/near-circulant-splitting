@@ -103,8 +103,8 @@ x_ncs = x;
 
 %PDHG experiment
 alpha = 0.001;
-beta = 0.001;
-gamma = 100;
+beta = 0.003;
+gamma = 10;
 im = xtrue;
 mask = ig.mask;
 

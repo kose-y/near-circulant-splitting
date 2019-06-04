@@ -80,7 +80,7 @@ x_ncs = x;
 
 %PDHG experiment
 alpha = 0.01;
-beta = 0.01;
+beta = 0.03;
 gamma = 10;
 
 x = toGPU(zeros(N,N));

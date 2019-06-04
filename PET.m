@@ -190,7 +190,7 @@ x_ncs = gather(x);
 %PDHG experiment
 alpha = 0.01;
 beta = 0.01;
-gamma = 0.1;
+gamma = 0.03;
 
 vx = toGPU(zeros(N,N));
 vy = toGPU(zeros(N,N));

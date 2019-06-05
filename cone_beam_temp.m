@@ -28,7 +28,7 @@ down = 4; % downsample rate
 cg = ct_geom('ge2', 'down', down);
 
 A = Gcone(cg, ig, 'type', 'sf2', 'nthread', jf('ncore')*2-1);
-A
+
 
 
 %{
@@ -56,7 +56,6 @@ save('H_mask.mat', 'H')
 
 
 load('H_mask.mat', 'H')
-H = real(H);
 x_ncs = CT_3D(420, 96, 200, 1, 0.001, 0.1, 100, sino_true, A, ig.mask, H);
 %}
 %{

@@ -54,6 +54,7 @@ else % We use smaller area of liver in the Patient B case
     liver(:,:,73:end) = 0;
 end
 
+f.scatter_percent = 0;
 
 % setting hot spot/cold spot/healthy liver/eroded liver
 hotspot = ellipsoid_im(ig, ...
@@ -137,7 +138,8 @@ gamma = 0.001;
 vx = toGPU(zeros(N,N));
 vy = toGPU(zeros(N,N));
 
-x = toGPU(zeros(N,N));
+rng(999)
+x = toGPU(100*rand(N,N));
 u = toGPU(zeros(q,1));
 
 
@@ -190,12 +192,13 @@ x_ncs = gather(x);
 %PDHG experiment
 alpha = 0.01;
 beta = 0.01;
-gamma = 0.1;
+gamma = 0.03;
 
 vx = toGPU(zeros(N,N));
 vy = toGPU(zeros(N,N));
 
-x = toGPU(zeros(N,N));
+rng(999)
+x = toGPU(100*rand(N,N));
 u = toGPU(zeros(q,1));
 
 
@@ -234,12 +237,15 @@ for ii=1:iters
     
     vv=max(E*reshape(x, [p,1]),1e-50);
     err_vec_PDHG(ii)=gather(sum(vv-y.*log(vv)))+gather(lambda*(sum(sum(abs(x(1:N,1:(N-1))-x(1:N,2:N))))+sum(sum(abs(x(1:(N-1),1:N)-x(2:N,1:N))))));
+    disp(err_vec_PDHG(ii))
 end
 x_pdhg = gather(x);
 
 
 
 
+alpha = 0.0003;
+beta = 0.3;
 
 xtmp = toGPU(zeros(N, N));
 center = floor(N/2);
@@ -247,6 +253,7 @@ xtmp(center, center) = 1;
 precond = compute_Gx(xtmp, N, E, Et, beta, useGPU);
 precond = fft2(precond);
 
+rng(999)
 x = toGPU(100*rand(N));
 u = toGPU(E * reshape(x, [p,1]));
 %vx = toGPU(zeros(N,N));
@@ -271,7 +278,7 @@ for ii=1:(iters/10)
     Gx = reshape(Et * u, [N, N]) + beta * Dpv;
     % now solve for x.
     
-    [x, kk] = cgsolve(x, Gx, N, E, Et, beta, useGPU, precond);
+    [x, kk] = cgsolve(x, Gx, N, E, Et, beta, useGPU, H);
     
     inner_iters = inner_iters + kk;
     
@@ -298,6 +305,7 @@ for ii=1:(iters/10)
     iter_vec = [iter_vec inner_iters];
     vv=max(E*reshape(x, [p,1]),1e-50);
     err_vec_ADMM = [err_vec_ADMM, gather(sum(vv-y.*log(vv)))+gather(lambda*(sum(sum(abs(x(1:N,1:(N-1))-x(1:N,2:N))))+sum(sum(abs(x(1:(N-1),1:N)-x(2:N,1:N))))))];
+    disp(err_vec_ADMM(end))
 end
 toc
 x_admm = gather(x);
@@ -336,12 +344,12 @@ end
   end
 
 function [x, kk] = cgsolve(xin, b, N, E, Et, beta, useGPU, precond)
-  x = xin+0.1;
+  x = xin+0.0001;
   r = b - compute_Gx(x, N, E, Et, beta, useGPU);
   rsold = sum(sum(r.^2));
   precond = precond;
-  p = r;
-  %p = real(ifft2(fft2(r)./precond));
+  %p = r;
+  p = real(ifft2(fft2(r).*precond));
   z = p;
   rtz = sum(sum(r.*z));
   for kk = 1:10
@@ -354,8 +362,8 @@ function [x, kk] = cgsolve(xin, b, N, E, Et, beta, useGPU, precond)
     if sqrt(rsnew) < 1e-5
       break;
     end
-    z = r;
-    %z = real(ifft2(fft2(r)./precond));
+    %z = r;
+    z = real(ifft2(fft2(r).*precond));
     rtzold = rtz;
     rtz = sum(sum(r.*z));
     beta = rtz/rtzold;

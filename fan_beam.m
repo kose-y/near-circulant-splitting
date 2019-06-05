@@ -1,9 +1,9 @@
-cd 'C:\Users\ernestryu\Documents\MATLAB\irt'
-setup
-cd 'C:\Users\ernestryu\Dropbox\papers\NCS\revised_code'
+%cd 'C:\Users\ernestryu\Documents\MATLAB\irt'
+%setup
+%cd 'C:\Users\ernestryu\Dropbox\papers\NCS\revised_code'
 
 %%
-load('C:\Users\ernestryu\Documents\MATLAB\PWLS-ULTRA-for-Low-Dose-3D-CT-Image-Reconstruction\data\2Dxcat\slice840.mat');  % testing slice
+load('../PWLS-ULTRA-for-Low-Dose-3D-CT-Image-Reconstruction/data/2Dxcat/slice840.mat');  % testing slice
 
 
 xtrue = double(imresize(xtrue_hi, 0.5));
@@ -60,8 +60,8 @@ toc
 H = real(H)/count;
 
 
-
-x = toGPU(zeros(N,N));
+rng(999)
+x = toGPU(randn(N,N));
 u = toGPU(zeros(size(A, 1), 1));
 vx = toGPU(zeros(N,N));
 vy = toGPU(zeros(N,N));
@@ -103,23 +103,24 @@ x_ncs = x;
 
 %PDHG experiment
 alpha = 0.001;
-beta = 0.001;
-gamma = 100;
+beta = 0.003;
+gamma = 10;
 im = xtrue;
 mask = ig.mask;
 
 
 clear x u vx vy
 
-x = toGPU(zeros(N,N));
+rng(999)
+x = toGPU(randn(N,N));
 u = toGPU(zeros(size(A, 1), 1));
 vx = toGPU(zeros(N,N));
 vy = toGPU(zeros(N,N));
 
 
 
-H = gamma*ones(N,N);
-H = toGPU(1./H);
+%H = gamma*ones(N,N);
+%H = toGPU(1./H);
 
 
 err_vec_PDHG = zeros(iters,1);
@@ -145,12 +146,15 @@ for ii=1:iters
 
     disp(mean(mean(y)))
     err_vec_PDHG(ii)=(1/2)*gather(sum(sum((A*x(mask(:))-sino).^2)))+lambda*gather(sum(sum(abs(x(1:N,1:(N-1))-x(1:N,2:N))))+sum(sum(abs(x(1:(N-1),1:N)-x(2:N,1:N)))));
+    disp(err_vec_PDHG(ii))
 end
 toc
 x_pdhg = x;
 
 
 %ADMM experiment
+alpha = 0.0001;
+beta = 0.03;
 mask = toGPU(mask);
 imv = im(:);
 
@@ -160,7 +164,8 @@ xtmp(center, center) = 1;
 precond = compute_Gx(xtmp, N, A, mask, beta, useGPU);
 precond = fft2(precond);
 
-x = toGPU(zeros(N,N));
+rng(999)
+x = toGPU(randn(N,N));
 u = toGPU(zeros(size(A,1), 1));
 %vx = toGPU(zeros(N,N));
 %vy = toGPU(zeros(N,N));
@@ -188,7 +193,7 @@ for ii=1:(iters/20)
     
     % now solve for x.
     
-    [x, kk] = cgsolve(x, Gx_tgt, N, A, mask, beta, useGPU, precond);
+    [x, kk] = cgsolve(x, Gx_tgt, N, A, mask, beta, useGPU, H);
     
     inner_iters = inner_iters + kk;
     
@@ -214,7 +219,7 @@ for ii=1:(iters/20)
     
     iter_vec = [iter_vec inner_iters];
     err_vec_ADMM = [err_vec_ADMM, (1/2)*gather(sum(sum((A*x(mask(:))-sino).^2)))+lambda*gather(sum(sum(abs(x(1:N,1:(N-1))-x(1:N,2:N))))+sum(sum(abs(x(1:(N-1),1:N)-x(2:N,1:N)))))];
-
+    disp(err_vec_ADMM(end))
 end
 toc
 x_admm = x;
@@ -270,12 +275,12 @@ set(gcf, 'Position', [100, 100, 800, 300])
 
 %%
 function [x, kk] = cgsolve(xin, b, N, A, mask, beta, useGPU, precond)
-  x = xin+0.01;
+  x = xin;
   r = b - compute_Gx(x, N, A, mask, beta, useGPU);
   rsold = sum(sum(r.^2));
   precond = precond;
-  p = r;
-  %p = real(ifft2(precond.*fft2(r)));
+  %p = r;
+  p = real(ifft2(precond.*fft2(r)));
   z = p;
   rtz = sum(sum(r.*z));
   for kk = 1:20
@@ -285,11 +290,11 @@ function [x, kk] = cgsolve(xin, b, N, A, mask, beta, useGPU, precond)
     x = x + alpha * p;
     r = r - alpha * Gp; 
     rsnew = sum(sum(r .^ 2));
-    if sqrt(rsnew) < 1e-5
-      break;
-    end
-    z = r;
-    %z = real(ifft2(precond.*fft2(r)));
+    %if sqrt(rsnew) < 1e-5
+    %  break;
+    %end
+    %z = r;
+    z = real(ifft2(precond.*fft2(r)));
     rtzold = rtz;
     rtz = sum(sum(r.*z));
     beta = rtz/rtzold;

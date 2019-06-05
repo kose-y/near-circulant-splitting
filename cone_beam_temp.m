@@ -57,7 +57,7 @@ save('H_mask.mat', 'H')
 
 load('H_mask.mat', 'H')
 H = real(H);
-x_ncs = CT_3D(420, 96, 200, 1, 0.001, 0.1, 100, sino_true, A, ig.mask, true, H);
+x_ncs = CT_3D(420, 96, 200, 1, 0.001, 0.1, 100, sino_true, A, ig.mask, H);
 %}
 %{
 x_pdhg = CT_3D(420, 96, 200, 1, 0.001, 0.1, 500, sino_true, A, ig.mask, false, []);

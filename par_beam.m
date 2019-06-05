@@ -1,11 +1,11 @@
 %%
-cd 'C:\Users\ernestryu\Documents\MATLAB\irt'
-setup
-cd 'C:\Users\ernestryu\Dropbox\papers\NCS\revised_code'
+%cd 'C:\Users\ernestryu\Documents\MATLAB\irt'
+%setup
+%cd 'C:\Users\ernestryu\Dropbox\papers\NCS\revised_code'
 
 %%
-close all; clear all;
-xtrue = imread('..\shared_folder\revision\code_seyoon\mayo\L067_FD_1_1_447.CT.0001.0560.2015.12.22.18.09.40.840353.358090018.jpg');
+%close all; clear all;
+xtrue = imread('../mayo/L067_FD_1_1_447.CT.0001.0560.2015.12.22.18.09.40.840353.358090018.jpg');
 xtrue = double(xtrue(:, :, 1));
 
 N = 512;
@@ -33,8 +33,8 @@ sino = toGPU(radon(im, th));
 alpha = 0.01;
 beta = 0.01;
 gamma = 1;
-
-x = toGPU(zeros(N,N));
+rng(999)
+x = toGPU(randn(N,N));
 u = 0*toGPU(radon(x,th));
 vx = toGPU(zeros(N,N));
 vy = toGPU(zeros(N,N));
@@ -45,6 +45,7 @@ kk = toGPU(kk); ll = toGPU(ll);
 H =  gamma*ones(N,N) + 10*alpha*183/2./(sqrt(min(kk,N-kk).^2+min(ll,N-ll).^2))  + beta^2/alpha*(4*(sin(kk*pi/N)).^2+4*(sin(ll*pi/N)).^2);
 H(1,1)=10;
 H = 1./H;
+H = toGPU(H);
     
 err_vec_NCS = zeros(iters,1);
 
@@ -72,6 +73,7 @@ for ii=1:iters
 
     disp(mean(mean(y)))
     err_vec_NCS(ii)=(1/2)*gather(sum(sum((radon(x, th)-sino).^2)))+lambda*gather(sum(sum(abs(x(1:N,1:(N-1))-x(1:N,2:N))))+sum(sum(abs(x(1:(N-1),1:N)-x(2:N,1:N)))));
+    disp(err_vec_NCS(ii))
 end
 toc
 x_ncs = x;
@@ -80,10 +82,11 @@ x_ncs = x;
 
 %PDHG experiment
 alpha = 0.01;
-beta = 0.01;
+beta = 0.03;
 gamma = 10;
 
-x = toGPU(zeros(N,N));
+rng(999)
+x = toGPU(randn(N,N));
 u = 0*toGPU(radon(x,th));
 vx = toGPU(zeros(N,N));
 vy = toGPU(zeros(N,N));
@@ -114,6 +117,7 @@ for ii=1:iters
 
     disp(mean(mean(y)))
     err_vec_PDHG(ii)=(1/2)*gather(sum(sum((radon(x, th)-sino).^2)))+lambda*gather(sum(sum(abs(x(1:N,1:(N-1))-x(1:N,2:N))))+sum(sum(abs(x(1:(N-1),1:N)-x(2:N,1:N)))));
+    disp(err_vec_PDHG(ii))
 end
 toc
 x_pdhg = x;
@@ -122,7 +126,7 @@ x_pdhg = x;
 
 %ADMM experiment
 alpha = 1;
-beta = 1;
+beta = 0.003;
 
 xtmp = toGPU(zeros(N, N));
 center = floor(N/2);
@@ -131,7 +135,8 @@ precond = compute_Gx(xtmp, N, th, beta, useGPU);
 precond = fft2(precond);
 %beta = max(max(abs(precond)))/min(min(abs(precond)))/100
 
-x = toGPU(zeros(N,N));
+rng(999)
+x = toGPU(randn(N,N));
 u = 0*toGPU(radon(x,th));
 %vx = toGPU(zeros(N,N));
 %vy = toGPU(zeros(N,N));
@@ -159,7 +164,7 @@ for ii=1:(iters/10)
     Gx = iradon(u-etau, th, 'none', N) + beta * Dpv;
     % now solve for x.
     
-    [x, kk] = cgsolve(x, Gx, N, th, beta, useGPU, precond);
+    [x, kk] = cgsolve(x, Gx, N, th, beta, useGPU, H);
     
     inner_iters = inner_iters + kk;
     
@@ -185,7 +190,7 @@ for ii=1:(iters/10)
     
     iter_vec = [iter_vec inner_iters];
     err_vec_ADMM = [err_vec_ADMM, (1/2)*gather(sum(sum((radon(x, th)-sino).^2)))+lambda*gather(sum(sum(abs(x(1:N,1:(N-1))-x(1:N,2:N))))+sum(sum(abs(x(1:(N-1),1:N)-x(2:N,1:N)))))];
-
+    disp(err_vec_ADMM(end))
 end
 toc
 x_admm = x;
@@ -239,12 +244,12 @@ title('Parallel beam (ADMM)')
 set(gcf, 'Position', [100, 100, 800, 300])
 %%
 function [x, kk] = cgsolve(xin, b, N, th, beta, useGPU, precond)
-  x = xin+0.1;
+  x = xin;
   r = b - compute_Gx(x, N, th, beta, useGPU);
   rsold = sum(sum(r.^2));
   precond = precond;
   p = r;
-  %p = real(ifft2(fft2(r)./precond));
+  p = real(ifft2(fft2(r).*precond));
   z = p;
   rtz = sum(sum(r.*z));
   for kk = 1:10
@@ -258,7 +263,7 @@ function [x, kk] = cgsolve(xin, b, N, th, beta, useGPU, precond)
       break;
     end
     z = r;
-    %z = real(ifft2(fft2(r)./precond));
+    z = real(ifft2(fft2(r).*precond));
     rtzold = rtz;
     rtz = sum(sum(r.*z));
     beta = rtz/rtzold;

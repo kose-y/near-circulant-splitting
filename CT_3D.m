@@ -16,7 +16,7 @@ if ~ncs
 else
     %NCS filter
     [kk,ll,mm] = meshgrid(0:(N-1),0:(N-1),0:(M-1));
-    H =  gamma*ones(N,N,M) + 1*alpha*ncs + 4*beta^2/alpha*((sin(kk*pi/N)).^2+(sin(ll*pi/N)).^2+(sin(mm*pi/M)).^2);
+    H =  gamma*ones(N,N,M) + 3*alpha*ncs + 4*beta^2/alpha*((sin(kk*pi/N)).^2+(sin(ll*pi/N)).^2+(sin(mm*pi/M)).^2);
     H = 1./H;
 end
 

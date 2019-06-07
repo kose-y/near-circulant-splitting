@@ -15,12 +15,14 @@ if ~ncs
     H = 1./H;
 else
     %NCS filter
-    H = ncs;
+    [kk,ll,mm] = meshgrid(0:(N-1),0:(N-1),0:(M-1));
+    H =  gamma*ones(N,N,M) + 3*alpha*ncs + 4*beta^2/alpha*((sin(kk*pi/N)).^2+(sin(ll*pi/N)).^2+(sin(mm*pi/M)).^2);
+    H = 1./H;
 end
 
 for ii=1:iters
     
-    disp(ii)
+    %disp(ii)
     xprime = x;
     
     Dpv = vx+vy+vz;
@@ -37,18 +39,26 @@ for ii=1:iters
     r = A * xprime(mask(:));
     
     u = double(1/(1+alpha)*(u+alpha*(r-sino)));
-    vx(1:N,1:(N-1),1:M) = max(min(vx(1:N,1:(N-1),1:M) + beta * (xprime(1:N,1:(N-1),1:M)-xprime(1:N,2:N,1:M)),lambda * alpha/beta),-lambda*alpha/beta);
-    vy(1:(N-1),1:N,1:M) = max(min(vy(1:(N-1),1:N,1:M) + beta * (xprime(1:(N-1),1:N,1:M)-xprime(2:N,1:N,1:M)),lambda * alpha/beta),-lambda*alpha/beta);
-    vz(1:N,1:N,1:(M-1)) = max(min(vz(1:N,1:N,1:(M-1)) + beta * (xprime(1:N,1:N,1:(M-1))-xprime(1:N,1:N,2:M)),lambda * alpha/beta),-lambda*alpha/beta);
+    vx(1:N,1:(N-1),1:M) = max(min(vx(1:N,1:(N-1),1:M) + beta*(xprime(1:N,1:(N-1),1:M)-xprime(1:N,2:N,1:M)),lambda*alpha/beta),-lambda*alpha/beta);
+    vy(1:(N-1),1:N,1:M) = max(min(vy(1:(N-1),1:N,1:M) + beta*(xprime(1:(N-1),1:N,1:M)-xprime(2:N,1:N,1:M)),lambda*alpha/beta),-lambda*alpha/beta);
+    vz(1:N,1:N,1:(M-1)) = max(min(vz(1:N,1:N,1:(M-1)) + beta*(xprime(1:N,1:N,1:(M-1))-xprime(1:N,1:N,2:M)),lambda*alpha/beta),-lambda*alpha/beta);
+
+    %disp(mean(mean(mean(y))))
     
-    %disp(sum(sum(sum(abs(y-mean(mean(mean(y))))))))
     if mod(ii, 10) == 0
+        disp((1/2)*gather(sum(sum(sum((A*x(mask(:))-sino).^2)))))
+        disp(lambda*gather(sum(sum(sum(abs(x(1:N,1:(N-1),1:M)-x(1:N,2:N,1:M)))))+sum(sum(sum(abs(x(1:(N-1),1:N,1:M)-x(2:N,1:N,1:M)))))+sum(sum(sum(abs(x(1:N,1:N,1:(M-1))-x(1:N,1:N,2:M)))))));
+    end
+
+
+    if mod(ii, 10) == 0
+        disp(ii)
         if ncs
             filename = sprintf('ncs_%03d.png', ii);
         else
             filename = sprintf('pdhg_%03d.png', ii);
         end
-        imwrite(x(:,:,66)/1.7160e+03, filename);
+        imwrite(x(:,:,66)/1.7e+03, filename);
     end
     
 end

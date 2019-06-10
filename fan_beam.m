@@ -181,7 +181,7 @@ err_vec_ADMM = [];
 inner_iters = 0;
 
 tic
-for ii=1:(iters/20)
+for ii=1:(iters/10)
     disp(ii)
     %save previous iterate
     xprime = x;
@@ -283,7 +283,7 @@ function [x, kk] = cgsolve(xin, b, N, A, mask, beta, useGPU, precond)
   p = real(ifft2(precond.*fft2(r)));
   z = p;
   rtz = sum(sum(r.*z));
-  for kk = 1:20
+  for kk = 1:10
     Gp = compute_Gx(p, N, A, mask, beta, useGPU);
     alpha = rtz / sum(sum(p .* Gp));
     

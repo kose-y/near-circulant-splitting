@@ -15,12 +15,12 @@ Date:  June 14, 2019
 http://web.eecs.umich.edu/~fessler/irt/fessler.tgz
 
 #### Code
-- (01) par_beam.m
-- (02) fan_beam.m	
-- (03) cone_beam_temp.m
-- (04) PET.m
+- par_beam.m
+- fan_beam.m	
+- cone_beam_temp.m
+- PET.m
 
 
 #### Notes 
-- cone_beam.m does not run on Windows and does not utilize GPUs as the XXX function of MIRT toolbox only supports CPU code on Linux and MacOS.
-- We do not real patient data used for par_beam.m. Rather we provide the option to replace it with the Shepp-Logan phantom.
+- cone_beam.m does not run on Windows and does not utilize GPUs. The ct_geom function of MIRT does not support Windows or GPUs.
+- As we cannot relase the real patient data used for par_beam.m, we provide the option to replace it with the Shepp-Logan phantom.

@@ -2,6 +2,7 @@ function x = CT_3D(N,M,  iters, lambda, alpha, beta, gamma, sino,  A, mask, ncs)
 
 sino = reshape(sino, [], 1);
 
+rng(999);
 x = randn(N,N, M);
 u = zeros(size(A, 1), 1);
 vx = zeros(N,N,M);

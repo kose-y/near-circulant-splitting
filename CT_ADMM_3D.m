@@ -1,7 +1,7 @@
 function x = CT_ADMM_3D(N,M,  iters, lambda, alpha, beta, sino,  A, mask)
 
 sino = reshape(sino, [], 1);
-
+rng(999);
 x = randn(N, N, M);
 u = zeros(size(A, 1), 1);
 vx = zeros(N, N, M);

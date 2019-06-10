@@ -63,10 +63,12 @@ ek(420/2,420/2,96/2) = 1;
 H = real(fftn(embed(A' * (A * ek(ig.mask(:))), ig.mask))./fftn(ek));
 
 
-x_ncs = CT_3D(420, 96, 200, 1, 0.001, 0.1, 0.01, sino_true, A, ig.mask, H);
+%x_ncs = CT_3D(420, 96, 200, 1, 0.001, 0.1, 0.01, sino_true, A, ig.mask, H);
 
 
-x_pdhg = CT_3D(420, 96, 200, 1, 0.001, 0.1, 1, sino_true, A, ig.mask, false);
+x_pdhg = CT_3D(420, 96, 500, 1, 0.001, 0.1, 1, sino_true, A, ig.mask, false);
+
+x_admm = CT_3D(420, 96, 500, 1, 1, 0.1, sino_true, A, ig.mask);
 
 
 

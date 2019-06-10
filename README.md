@@ -7,7 +7,7 @@ Date:  June 14, 2019
 
 #### Authors
 - [**Ernest Ryu**](http://www.math.ucla.edu/~eryu/)
-- [**Seyoon Kop**](https://kose-y.github.io/)
+- [**Seyoon Ko**](https://kose-y.github.io/)
 - [**Joong-Ho Won**](https://sites.google.com/site/johannwon/)
 
 

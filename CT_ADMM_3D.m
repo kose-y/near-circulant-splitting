@@ -69,8 +69,12 @@ for ii=1:(iters/10)
 
     if mod(inner_iters, 10) == 0
         disp(inner_iters)
-        filename = sprintf('admm_%03d.png', inner_iters);
-        imwrite(x(:,:,66)/1.7e+03, filename);
+        filename_x = sprintf('admm_%03d_x.png', ii);
+        filename_y = sprintf('admm_%03d_y.png', ii);
+        filename_z = sprintf('admm_%03d_z.png', ii);
+        imwrite(squeeze(x(210,:,:))'/1.7e+03, filename_x);
+        imwrite(squeeze(x(:,210,:))'/1.7e+03, filename_y);
+        imwrite(x(:,:,66)/1.7e+03, filename_z);
     end
     
 end

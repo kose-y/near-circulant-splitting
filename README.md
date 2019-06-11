@@ -21,4 +21,4 @@ http://web.eecs.umich.edu/~fessler/irt/fessler.tgz
 
 #### Notes 
 - cone_beam.m does not run on Windows and does not utilize GPUs as the ct_geom of MIRT does not support Windows or GPUs.
-- As we cannot relase the real patient data used for par_beam.m. You can experiment with the Shepp-Logan phantom.
+- We cannot relase the real patient data used for par_beam.m. You can experiment instead with the Shepp-Logan phantom.

@@ -352,6 +352,3 @@ function Dpv = compute_Dpv(vx, vy, vz, N, M)
     Dpv(2:N,1:N,1:M) = Dpv(2:N,1:N,1:M) - vy(1:(N-1),1:N,1:M);
     Dpv(1:N,1:N,2:M) = Dpv(1:N,1:N,2:M) - vz(1:N,1:N,1:(M-1)); 
 end
-
-end
-

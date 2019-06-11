@@ -77,7 +77,7 @@ sino = reshape(sino, [], 1);
 
 
 %NCS experiment
-alpha = 0.001;
+alpha = 0.003;
 beta = 0.1;
 gamma = 0.3;
 
@@ -90,14 +90,14 @@ vz = zeros(N,N,M);
 
 
 [kk,ll,mm] = meshgrid(0:(N-1),0:(N-1),0:(M-1));
-H =  gamma*ones(N,N,M) + 3*alpha*ncs + 4*beta^2/alpha*((sin(kk*pi/N)).^2+(sin(ll*pi/N)).^2+(sin(mm*pi/M)).^2);
+H =  gamma*ones(N,N,M) + 10*alpha*H + 4*beta^2/alpha*((sin(kk*pi/N)).^2+(sin(ll*pi/N)).^2+(sin(mm*pi/M)).^2);
 H = 1./H;
 
 err_vec_NCS = zeros(iters,1);
 tic
 for ii=1:iters
     
-    %disp(ii)
+    disp(ii)
     xprime = x;
     
     Dpv = vx+vy+vz;
@@ -119,7 +119,7 @@ for ii=1:iters
 
     
     err_vec_NCS(ii) = (1/2)*gather(sum(sum(sum((A*x(mask(:))-sino).^2)))) + lambda*gather(sum(sum(sum(abs(x(1:N,1:(N-1),1:M)-x(1:N,2:N,1:M)))))+sum(sum(sum(abs(x(1:(N-1),1:N,1:M)-x(2:N,1:N,1:M)))))+sum(sum(sum(abs(x(1:N,1:N,1:(M-1))-x(1:N,1:N,2:M))))));
-    
+    disp(err_vec_NCS(ii))
 %     if mod(ii, 10) == 0
 %         disp((1/2)*gather(sum(sum(sum((A*x(mask(:))-sino).^2)))))
 %         disp(lambda*gather(sum(sum(sum(abs(x(1:N,1:(N-1),1:M)-x(1:N,2:N,1:M)))))+sum(sum(sum(abs(x(1:(N-1),1:N,1:M)-x(2:N,1:N,1:M)))))+sum(sum(sum(abs(x(1:N,1:N,1:(M-1))-x(1:N,1:N,2:M)))))));
@@ -132,7 +132,7 @@ toc
 x_ncs = x;
 clear x u vx vy vz
 
-
+%{
 %PDHG experiment
 alpha = 0.001;
 beta = 0.1;
@@ -148,7 +148,7 @@ err_vec_PDHG = zeros(iters,1);
 tic
 for ii=1:iters
     
-    %disp(ii)
+    disp(ii)
     xprime = x;
     
     Dpv = vx+vy+vz;
@@ -169,7 +169,7 @@ for ii=1:iters
 
     
     err_vec_PDHG(ii) = (1/2)*gather(sum(sum(sum((A*x(mask(:))-sino).^2)))) + lambda*gather(sum(sum(sum(abs(x(1:N,1:(N-1),1:M)-x(1:N,2:N,1:M)))))+sum(sum(sum(abs(x(1:(N-1),1:N,1:M)-x(2:N,1:N,1:M)))))+sum(sum(sum(abs(x(1:N,1:N,1:(M-1))-x(1:N,1:N,2:M))))));
-    
+    disp(err_vec_PDHG(ii))
 %     if mod(ii, 10) == 0
 %         disp((1/2)*gather(sum(sum(sum((A*x(mask(:))-sino).^2)))))
 %         disp(lambda*gather(sum(sum(sum(abs(x(1:N,1:(N-1),1:M)-x(1:N,2:N,1:M)))))+sum(sum(sum(abs(x(1:(N-1),1:N,1:M)-x(2:N,1:N,1:M)))))+sum(sum(sum(abs(x(1:N,1:N,1:(M-1))-x(1:N,1:N,2:M)))))));
@@ -251,7 +251,7 @@ for ii=1:(iters/10)
     
     iter_vec = [iter_vec inner_iters];
     err_vec_ADMM = [err_vec_ADMM, (1/2)*gather(sum(sum(sum((A*x(mask(:))-sino).^2)))) + lambda*gather(sum(sum(sum(abs(x(1:N,1:(N-1),1:M)-x(1:N,2:N,1:M)))))+sum(sum(sum(abs(x(1:(N-1),1:N,1:M)-x(2:N,1:N,1:M)))))+sum(sum(sum(abs(x(1:N,1:N,1:(M-1))-x(1:N,1:N,2:M))))))];
-
+    disp(err_vec_ADMM(ii))
     
 %     if mod(inner_iters, 10) == 0
 %         disp((1/2)*gather(sum(sum(sum((A*x(mask(:))-sino).^2)))))
@@ -352,3 +352,4 @@ function Dpv = compute_Dpv(vx, vy, vz, N, M)
     Dpv(2:N,1:N,1:M) = Dpv(2:N,1:N,1:M) - vy(1:(N-1),1:N,1:M);
     Dpv(1:N,1:N,2:M) = Dpv(1:N,1:N,2:M) - vz(1:N,1:N,1:(M-1)); 
 end
+%}

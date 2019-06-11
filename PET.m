@@ -335,7 +335,7 @@ ax.Position = [left bottom ax_width ax_height*1.1];
 
 set(gcf, 'Position', [100, 100, 700, 320])
 title('PET experiments')
-%myprint('CT_conv.pdf')
+saveas(gcf,'PET_plot.png')
 
 %%
 maxval = max([max(max(x_ncs)),max(max(x_pdhg)),max(max(x_admm))]);

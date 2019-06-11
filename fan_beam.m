@@ -235,9 +235,7 @@ ax.Position = [left bottom ax_width ax_height*1.1];
 
 set(gcf, 'Position', [100, 100, 700, 320])
 title('Fan beam experiments')
-%myprint('CT_conv.pdf')
-
-
+saveas(gcf,'fan_plot.png')
 
 
 %%

@@ -1,19 +1,11 @@
-%%
-%cd 'C:\Users\ernestryu\Documents\MATLAB\irt'
-%setup
-%cd 'C:\Users\ernestryu\Dropbox\papers\NCS\revised_code'
-
-%%
-%close all; clear all;
-xtrue = imread('../mayo/L067_FD_1_1_447.CT.0001.0560.2015.12.22.18.09.40.840353.358090018.jpg');
-xtrue = double(xtrue(:, :, 1));
-
+close all; clear all;
 N = 512;
+xtrue = imread('data/mayo_clinic_image.jpg');
+xtrue = double(xtrue(:, :, 1));
+%xtrue = phantom('Modified Shepp-Logan',N);
+
 lambda = 1;
-
-
-iters = 100;
-
+iters = 1000;
 useGPU = true;
 
 if useGPU
@@ -21,7 +13,6 @@ if useGPU
 else
     toGPU = @(x) x;
 end
-%im = toGPU(phantom('Modified Shepp-Logan',N));
 
 im = toGPU(xtrue);
 th = linspace(0,180,61);
@@ -33,6 +24,7 @@ sino = toGPU(radon(im, th));
 alpha = 0.01;
 beta = 0.01;
 gamma = 1;
+
 rng(999)
 x = toGPU(randn(N,N));
 u = 0*toGPU(radon(x,th));
@@ -42,7 +34,7 @@ vy = toGPU(zeros(N,N));
 
 [kk,ll] = meshgrid(0:(N-1),0:(N-1));
 kk = toGPU(kk); ll = toGPU(ll);
-H =  gamma*ones(N,N) + 10*alpha*183/2./(sqrt(min(kk,N-kk).^2+min(ll,N-ll).^2))  + beta^2/alpha*(4*(sin(kk*pi/N)).^2+4*(sin(ll*pi/N)).^2);
+H =  gamma*ones(N,N) + 300*alpha./(sqrt(min(kk,N-kk).^2+min(ll,N-ll).^2))  +4* beta^2/alpha*((sin(kk*pi/N)).^2+(sin(ll*pi/N)).^2);
 H(1,1)=10;
 H = 1./H;
 H = toGPU(H);
@@ -51,9 +43,8 @@ err_vec_NCS = zeros(iters,1);
 
 tic
 for ii=1:iters
-    disp(ii)
-    %save previous iterate
-    xprime = x;
+    %disp(ii)
+    xprime = x; %save previous iterate
     
     Dpv = vx+vy;
     Dpv(1:N,2:N) = Dpv(1:N,2:N) - vx(1:N,1:(N-1));
@@ -61,8 +52,6 @@ for ii=1:iters
     
     y = iradon(u,th,'none',N)+beta/alpha*Dpv;
     x = x-real(ifft2(H.*fft2(y)));
-    %x = x-real(ifft2(H.*fft2(iradon(u,th,'none',N)+Dpv)));
-    %x = x-1/beta*y;
     
     xprime = (2*x-xprime);
     r = radon(xprime, th);
@@ -71,13 +60,12 @@ for ii=1:iters
     vx(1:N,1:(N-1)) = max(min(vx(1:N,1:(N-1)) + beta * (xprime(1:N,1:(N-1))-xprime(1:N,2:N)),lapb),-lapb);
     vy(1:(N-1),1:N) = max(min(vy(1:(N-1),1:N) + beta * (xprime(1:(N-1),1:N)-xprime(2:N,1:N)),lapb),-lapb);
 
-    disp(mean(mean(y)))
     err_vec_NCS(ii)=(1/2)*gather(sum(sum((radon(x, th)-sino).^2)))+lambda*gather(sum(sum(abs(x(1:N,1:(N-1))-x(1:N,2:N))))+sum(sum(abs(x(1:(N-1),1:N)-x(2:N,1:N)))));
-    disp(err_vec_NCS(ii))
+    %disp(err_vec_NCS(ii))
 end
 toc
 x_ncs = x;
-%imshow(x_ncs, [min(min(xtrue)), max(max(xtrue))])
+clear x u vx vy
 
 
 %PDHG experiment
@@ -91,15 +79,12 @@ u = 0*toGPU(radon(x,th));
 vx = toGPU(zeros(N,N));
 vy = toGPU(zeros(N,N));
 
-
-
 err_vec_PDHG = zeros(iters,1);
 
 tic
 for ii=1:iters
-    disp(ii)
-    %save previous iterate
-    xprime = x;
+    %disp(ii)
+    xprime = x; %save previous iterate
     
     Dpv = vx+vy;
     Dpv(1:N,2:N) = Dpv(1:N,2:N) - vx(1:N,1:(N-1));
@@ -115,14 +100,13 @@ for ii=1:iters
     vx(1:N,1:(N-1)) = max(min(vx(1:N,1:(N-1)) + beta * (xprime(1:N,1:(N-1))-xprime(1:N,2:N)),lapb),-lapb);
     vy(1:(N-1),1:N) = max(min(vy(1:(N-1),1:N) + beta * (xprime(1:(N-1),1:N)-xprime(2:N,1:N)),lapb),-lapb);
 
-    disp(mean(mean(y)))
     err_vec_PDHG(ii)=(1/2)*gather(sum(sum((radon(x, th)-sino).^2)))+lambda*gather(sum(sum(abs(x(1:N,1:(N-1))-x(1:N,2:N))))+sum(sum(abs(x(1:(N-1),1:N)-x(2:N,1:N)))));
-    disp(err_vec_PDHG(ii))
+    %disp(err_vec_PDHG(ii))
 end
 toc
 x_pdhg = x;
+clear x u vx vy
 
-%imshow(x_pdhg, [min(min(xtrue)), max(max(xtrue))])
 
 %ADMM experiment
 alpha = 1;
@@ -148,22 +132,20 @@ Dxx = toGPU(zeros(N,N));
 Dxy = toGPU(zeros(N,N));
 
 tic
-
 iter_vec = [];
 err_vec_ADMM = [];
 inner_iters = 0;
 for ii=1:(iters/10)
-    disp(ii)
-    %save previous iterate
-    xprime = x;
+    %disp(ii)
+    xprime = x; %save previous iterate
     
     % step 3
     
     Dpv = compute_Dpv(vx-etavx, vy-etavy, N);
     
     Gx = iradon(u-etau, th, 'none', N) + beta * Dpv;
-    % now solve for x.
     
+    %solve for x
     [x, kk] = cgsolve(x, Gx, N, th, beta, useGPU, H);
     
     inner_iters = inner_iters + kk;
@@ -190,7 +172,7 @@ for ii=1:(iters/10)
     
     iter_vec = [iter_vec inner_iters];
     err_vec_ADMM = [err_vec_ADMM, (1/2)*gather(sum(sum((radon(x, th)-sino).^2)))+lambda*gather(sum(sum(abs(x(1:N,1:(N-1))-x(1:N,2:N))))+sum(sum(abs(x(1:(N-1),1:N)-x(2:N,1:N)))))];
-    disp(err_vec_ADMM(end))
+    %disp(err_vec_ADMM(end))
 end
 toc
 x_admm = x;
@@ -208,7 +190,7 @@ loglog(1:length(err_vec_PDHG),err_vec_PDHG-minval,'r--','LineWidth',2)
 loglog(iter_vec,err_vec_ADMM-minval,'b:','LineWidth',2)
 
 legend('NCS','PDHG','ADMM')
-xlabel('Linear operator and adjoint evaluations')
+xlabel('Iterations')
 ylabel('Objective value suboptimality')
 
 pbaspect([2.5 1 1])
@@ -222,33 +204,43 @@ left = outerpos(1) + ti(1);
 bottom = outerpos(2) + ti(2);
 ax_width = outerpos(3) - ti(1) - ti(3);
 ax_height = outerpos(4) - ti(2) - ti(4);
-ax.Position = [left bottom ax_width ax_height*1.15];
+ax.Position = [left bottom ax_width ax_height*1.1];
 
 set(gcf, 'Position', [100, 100, 700, 320])
 
 title('Parallel beam experiments')
-%myprint('CT_conv.pdf')
+saveas(gcf,'par_plot.png')
 
 %%
+x_ncs_scaled = gather((x_ncs - min(min(xtrue)))/max(max(xtrue)));
+x_pdhg_scaled = gather((x_pdhg - min(min(xtrue)))/max(max(xtrue)));
+x_admm_scaled = gather((x_admm - min(min(xtrue)))/max(max(xtrue)));
+
 figure
 subplot(1,3,1)
-imshow(x_ncs, [min(min(xtrue)), max(max(xtrue))])
+imshow(x_ncs_scaled)
 title('Parallel beam (NCS)')
 subplot(1,3,2)
-imshow(x_pdhg, [min(min(xtrue)), max(max(xtrue))])
+imshow(x_pdhg_scaled)
 title('Parallel beam (PDHG)')
 subplot(1,3,3)
-imshow(x_admm, [min(min(xtrue)), max(max(xtrue))])
+imshow(x_admm_scaled)
 title('Parallel beam (ADMM)')
 
 set(gcf, 'Position', [100, 100, 800, 300])
+
+imwrite(x_ncs_scaled, 'par_beam_ncs.png');
+imwrite(x_pdhg_scaled, 'par_beam_pdhg.png');
+imwrite(x_admm_scaled, 'par_beam_admm.png');
+
+
 %%
 function [x, kk] = cgsolve(xin, b, N, th, beta, useGPU, precond)
   x = xin;
   r = b - compute_Gx(x, N, th, beta, useGPU);
-  rsold = sum(sum(r.^2));
-  precond = precond;
-  p = r;
+  rsold = sum(sum(r.^2));  %XXX Is this needed? XXX
+  precond = precond;  %XXX Is this needed? XXX
+  p = r;  %XXX Is this needed? XXX
   p = real(ifft2(fft2(r).*precond));
   z = p;
   rtz = sum(sum(r.*z));
@@ -262,7 +254,7 @@ function [x, kk] = cgsolve(xin, b, N, th, beta, useGPU, precond)
     if sqrt(rsnew) < 1e-5
       break;
     end
-    z = r;
+    z = r;  %XXX Is this needed? XXX
     z = real(ifft2(fft2(r).*precond));
     rtzold = rtz;
     rtz = sum(sum(r.*z));

@@ -258,6 +258,7 @@ etau = toGPU(zeros(size(u)));
 etavx = toGPU(zeros(size(vx)));
 etavy = toGPU(zeros(size(vy)));
 
+H = toGPU(ones(size(x)));
 
 iter_vec = [];
 err_vec_ADMM = [];
@@ -385,9 +386,6 @@ end
 function [x, kk] = cgsolve(xin, b, N, E, Et, beta, useGPU, precond)
   x = xin+0.0001;
   r = b - compute_Gx(x, N, E, Et, beta, useGPU);
-  rsold = sum(sum(r.^2));  %XXX Is this needed? XXX
-  precond = precond;     %XXX Is this needed? XXX
-  %p = r;    %XXX Is this needed? XXX
   p = real(ifft2(fft2(r).*precond));
   z = p;
   rtz = sum(sum(r.*z));
@@ -401,7 +399,6 @@ function [x, kk] = cgsolve(xin, b, N, E, Et, beta, useGPU, precond)
     if sqrt(rsnew) < 1e-5
       break;
     end
-    %z = r;  %XXX Is this needed? XXX
     z = real(ifft2(fft2(r).*precond));
     rtzold = rtz;
     rtz = sum(sum(r.*z));

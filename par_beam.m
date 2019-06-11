@@ -130,7 +130,7 @@ etavx = toGPU(zeros(size(vx)));
 etavy = toGPU(zeros(size(vy)));
 Dxx = toGPU(zeros(N,N));
 Dxy = toGPU(zeros(N,N));
-
+H = toGPU(ones(size(x)));
 tic
 iter_vec = [];
 err_vec_ADMM = [];
@@ -238,9 +238,6 @@ imwrite(x_admm_scaled, 'par_beam_admm.png');
 function [x, kk] = cgsolve(xin, b, N, th, beta, useGPU, precond)
   x = xin;
   r = b - compute_Gx(x, N, th, beta, useGPU);
-  rsold = sum(sum(r.^2));  %XXX Is this needed? XXX
-  precond = precond;  %XXX Is this needed? XXX
-  p = r;  %XXX Is this needed? XXX
   p = real(ifft2(fft2(r).*precond));
   z = p;
   rtz = sum(sum(r.*z));
@@ -254,7 +251,6 @@ function [x, kk] = cgsolve(xin, b, N, th, beta, useGPU, precond)
     if sqrt(rsnew) < 1e-5
       break;
     end
-    z = r;  %XXX Is this needed? XXX
     z = real(ifft2(fft2(r).*precond));
     rtzold = rtz;
     rtz = sum(sum(r.*z));

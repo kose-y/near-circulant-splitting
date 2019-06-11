@@ -309,7 +309,6 @@ saveas(gcf,'cone_plot.png')
 function [x, kk] = cgsolve(xin, b, N, M, A, mask, beta, precond)
   x = xin;
   r = b - compute_Gx(x, N, M, A, mask, beta);
-  rsold = sum(sum(sum(r.^2)));
   
   p = real(ifftn(precond .* fftn(r)));
   z = p;

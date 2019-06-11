@@ -13,8 +13,6 @@ ig.mask = ig.circ >0;
 A = Gtomo2_strip(sg, ig, 'class', 'Fatrix');
 
 
-% Main plotting code
-
 N = 420;
 iters = 1000;
 lambda = 10;

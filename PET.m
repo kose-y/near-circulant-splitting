@@ -356,9 +356,9 @@ title('PET (ADMM)')
 
 set(gcf, 'Position', [100, 100, 800, 300])
 
-imwrite(x_ncs_scaled, 'pet_ncs.png');
-imwrite(x_pdhg_scaled, 'pet_pdhg.png');
-imwrite(x_admm_scaled, 'pet_admm.png');
+imwrite(x_ncs_scaled, 'PET_ncs.png');
+imwrite(x_pdhg_scaled, 'PET_pdhg.png');
+imwrite(x_admm_scaled, 'PET_admm.png');
 
 
 %%

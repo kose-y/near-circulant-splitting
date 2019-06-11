@@ -54,11 +54,17 @@ for ii=1:iters
     if mod(ii, 10) == 0
         disp(ii)
         if ncs
-            filename = sprintf('ncs_%03d.png', ii);
+            filename_x = sprintf('ncs_%03d_x.png', ii);
+            filename_y = sprintf('ncs_%03d_y.png', ii);
+            filename_z = sprintf('ncs_%03d_z.png', ii);
         else
-            filename = sprintf('pdhg_%03d.png', ii);
+            filename_x = sprintf('pdhg_%03d_x.png', ii);
+            filename_y = sprintf('pdhg_%03d_y.png', ii);
+            filename_z = sprintf('pdhg_%03d_z.png', ii);
         end
-        imwrite(x(:,:,66)/1.7e+03, filename);
+        imwrite(squeeze(x(210,:,:))'/1.7e+03, filename_x);
+        imwrite(squeeze(x(:,210,:))'/1.7e+03, filename_y);
+        imwrite(x(:,:,66)/1.7e+03, filename_z);
     end
     
 end

@@ -185,7 +185,7 @@ clear x u vx vy vz
 
 
 %ADMM experiment
-alpha = 0.001;
+alpha = 1;
 beta = 0.1;
 
 

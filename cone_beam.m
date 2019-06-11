@@ -71,15 +71,15 @@ end
 
 N = 420;
 M=96;
-iters = 100;
+iters = 1000;
 lambda = 1;
 sino = reshape(sino, [], 1);
 
 
 %NCS experiment
-alpha = 0.003;
+alpha = 0.001;
 beta = 0.1;
-gamma = 0.3;
+gamma = 0.03;
 
 
 x = zeros(N,N, M);
@@ -132,7 +132,7 @@ toc
 x_ncs = x;
 clear x u vx vy vz
 
-%{
+
 %PDHG experiment
 alpha = 0.001;
 beta = 0.1;
@@ -273,6 +273,8 @@ end
 
 toc
 x_admm = x;
+
+save('cone_beam_results.mat','err_vec_PDHG','err_vec_NCS','err_vec_ADMM','iter_vec')
 
 %%
 close all;

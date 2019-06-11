@@ -6,7 +6,7 @@ This code implements the experiments for [`reference`](https://arxiv.org/abs/181
 Date:  June 14, 2019
 
 #### Authors
-- [**Ernest Ryu**](http://www.math.ucla.edu/~eryu/)
+- [**Ernest K. Ryu**](http://www.math.ucla.edu/~eryu/)
 - [**Seyoon Ko**](https://kose-y.github.io/)
 - [**Joong-Ho Won**](https://sites.google.com/site/johannwon/)
 

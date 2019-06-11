@@ -2,8 +2,7 @@
 %(Many features of MIRT toolbox do not work on Windows.)
 close all; clear all;
 
-if ~isfile('PET_data.mat')
-    disp('sjdifodj')
+if ~isfile('data/PET_data.mat')
     % read XCAT data 
     %bin_read is a function provided by ADMM_nonnegativity
     mumap = bin_read('data/Y90PET_atn_1.bin'); % reading attenuation map 
@@ -90,7 +89,7 @@ if ~isfile('PET_data.mat')
     f.sys_type = sprintf('2z@%s@-', f.wtr);
 
 
-    load('PET128.mat') % we use matrix E for 128x128 design
+    load('data/PET128.mat') % we use matrix E for 128x128 design
     d = 128;  %Number of detectors
     N = 128;  %Image is NxN
     p = N^2;  %Number of pixels
@@ -106,14 +105,14 @@ if ~isfile('PET_data.mat')
     ytrue = ci .* ytrue; 
     y = poisson(ytrue);
 
-    save('PET_data.mat','y','xtrue')
+    save('data/PET_data.mat','y','xtrue')
 else
-    load('PET128.mat') % we use matrix E for 128x128 design
+    load('data/PET128.mat') % we use matrix E for 128x128 design
     d = 128;  %Number of detectors
     N = 128;  %Image is NxN
     p = N^2;  %Number of pixels
     q = d*(d-1)/2;  %number of detector pairs
-    load('PET_data.mat')
+    load('data/PET_data.mat')
 end
 
 iters = 1000;

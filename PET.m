@@ -1,119 +1,122 @@
 %This code only works on MacOS and Linux, not on Windows.
 %(Many features of MIRT toolbox do not work on Windows.)
-
 close all; clear all;
-addpath('../ADMM_nonnegativity/')
-% read XCAT data 
-%bin_read is a function provided by ADMM_nonnegativity
-mumap = bin_read('../ADMM_nonnegativity/Y90PET_atn_1.bin'); % reading attenuation map 
-mumap = mumap / 10; % cm -> mm
-ind = bin_read('../ADMM_nonnegativity/Y90PET_act_1.bin');
-liver = single((ind == 13)); % setting liver mask 
-llung = (ind == 15); rlung = (ind == 16); % setting lung mask 
-lung = single(llung + rlung);
+
+if ~isfile('PET_data.mat')
+    disp('sjdifodj')
+    % read XCAT data 
+    %bin_read is a function provided by ADMM_nonnegativity
+    mumap = bin_read('data/Y90PET_atn_1.bin'); % reading attenuation map 
+    mumap = mumap / 10; % cm -> mm
+    ind = bin_read('data/Y90PET_act_1.bin');
+    liver = single((ind == 13)); % setting liver mask 
+    llung = (ind == 15); rlung = (ind == 16); % setting lung mask 
+    lung = single(llung + rlung);
 
 
-% image/projection geometry setting
-nx = 128; % number of voxel in x direction 
-ny = 128; % number of voxel in y direction 
-nz = 100; % number of voxel in z direction 
-dx = 4; % voxel size in x direction
-dz = 4; % voxel size in z direction
-na = 168; % number of projection angle
+    % image/projection geometry setting
+    nx = 128; % number of voxel in x direction 
+    ny = 128; % number of voxel in y direction 
+    nz = 100; % number of voxel in z direction 
+    dx = 4; % voxel size in x direction
+    dz = 4; % voxel size in z direction
+    na = 168; % number of projection angle
 
-% recon parameter setting
-rho = 1; % initial rho value 
-patient_A = 1; % 1 if Patient A condition, 0 if Patient B condition
-beta = 2^-3; % regularization parameter 
-alpha = 1; % constraint: Ax + alpha * r > 0 
-psi = 1; % negml poisson-gaussian switching parameter 
+    % recon parameter setting
+    rho = 1; % initial rho value 
+    patient_A = 1; % 1 if Patient A condition, 0 if Patient B condition
+    beta = 2^-3; % regularization parameter 
+    alpha = 1; % constraint: Ax + alpha * r > 0 
+    psi = 1; % negml poisson-gaussian switching parameter 
 
-xiter = 1; % number of x inner update 
-niter = 50; % number of admm update 
-titer = xiter * niter; % total number of iterations 
+    xiter = 1; % number of x inner update 
+    niter = 50; % number of admm update 
+    titer = xiter * niter; % total number of iterations 
 
-% setting 
-ig = image_geom('nx', nx, 'ny', ny, 'nz', nz, 'dx', dx, 'dz', dz);
-ig.mask = ig.circ(ig.dx * (ig.nx/2-2), ig.dy * (ig.ny/2-4)) > 0;
-sg = sino_geom('par', 'nb', ig.nx, 'na', na * ig.nx / nx, ...
-    'dr', ig.dx, 'strip_width', 2*ig.dx);
-R = Reg1(ig.mask, 'edge_type', 'tight', ...
-    'beta', beta, 'pot_arg', {'quad'},'type_denom', 'matlab');
+    % setting 
+    ig = image_geom('nx', nx, 'ny', ny, 'nz', nz, 'dx', dx, 'dz', dz);
+    ig.mask = ig.circ(ig.dx * (ig.nx/2-2), ig.dy * (ig.ny/2-4)) > 0;
+    sg = sino_geom('par', 'nb', ig.nx, 'na', na * ig.nx / nx, ...
+        'dr', ig.dx, 'strip_width', 2*ig.dx);
+    R = Reg1(ig.mask, 'edge_type', 'tight', ...
+        'beta', beta, 'pot_arg', {'quad'},'type_denom', 'matlab');
 
-% Patient A or B condition 
-if patient_A
-    f.counts = 6e5;
-    f.scatter_percent = 500;
-else % We use smaller area of liver in the Patient B case
-    f.counts = 1e5;
-    f.scatter_percent = 1800;
-    liver(64:128,:,:) = 0;
-    liver(:,76:128,:) = 0;
-    liver(:,1:50,:) = 0;
-    liver(:,:,1:55) = 0;
-    liver(:,:,73:end) = 0;
+    % Patient A or B condition 
+    if patient_A
+        f.counts = 6e5;
+    else % We use smaller area of liver in the Patient B case
+        f.counts = 1e5;
+        liver(64:128,:,:) = 0;
+        liver(:,76:128,:) = 0;
+        liver(:,1:50,:) = 0;
+        liver(:,:,1:55) = 0;
+        liver(:,:,73:end) = 0;
+    end
+
+
+    % setting hot spot/cold spot/healthy liver/eroded liver
+    hotspot = ellipsoid_im(ig, ...
+        [-40 30 50  20 20 25    0 0 1;
+        ], 'oversample', 1);
+    coldspot = ellipsoid_im(ig, ...
+        [-90 -10 60  20 20 25    0 0 1;
+        ], 'oversample', 1);
+    hliver = liver - hotspot - coldspot;
+    hliver(hliver < 0) = 0;
+    se = strel('arbitrary',eye(2));
+    eliver = imerode(hliver,se);
+
+    % true image 
+    xtrue = double(liver + 4*hotspot - coldspot + 0.04*lung);
+    xtrue(xtrue < 0) = 0;
+
+    % system model
+    f.dir = test_dir;
+    f.dsc = [test_dir 't.dsc'];
+    f.wtr = strrep(f.dsc, 'dsc', 'wtr');
+    f.mask = [test_dir 'mask.fld'];
+    fld_write(f.mask, ig.mask)
+
+    tmp = Gtomo2_wtmex(sg, ig, 'mask', ig.mask_or);
+
+    [tmp dum dum dum dum is_transpose] = ...
+        wtfmex('asp:mat', tmp.arg.buff, int32(0));
+    if is_transpose
+        tmp = tmp'; % because row grouped
+    end
+    delete(f.wtr)
+    wtf_write(f.wtr, tmp, ig.nx, ig.ny, sg.nb, sg.na, 'row_grouped', 1)
+
+    f.sys_type = sprintf('2z@%s@-', f.wtr);
+
+
+    load('PET128.mat') % we use matrix E for 128x128 design
+    d = 128;  %Number of detectors
+    N = 128;  %Image is NxN
+    p = N^2;  %Number of pixels
+    q = d*(d-1)/2;  %number of detector pairs
+
+    % created noisy count data based on our E matrix
+    xtrue_2d = squeeze(xtrue(:, :, 66));
+    mumap_2d = squeeze(mumap(:, :, 66));
+    ytrue = E * reshape(double(xtrue_2d), [p, 1]);
+    li = E * reshape(double(mumap_2d), [p,1]);
+    ci = exp(-li);
+    ci = ci * f.counts / sum(col(ci.*ytrue));
+    ytrue = ci .* ytrue; 
+    y = poisson(ytrue);
+
+    save('PET_data.mat','y','xtrue')
+else
+    load('PET128.mat') % we use matrix E for 128x128 design
+    d = 128;  %Number of detectors
+    N = 128;  %Image is NxN
+    p = N^2;  %Number of pixels
+    q = d*(d-1)/2;  %number of detector pairs
+    load('PET_data.mat')
 end
 
-f.scatter_percent = 0;
-
-% setting hot spot/cold spot/healthy liver/eroded liver
-hotspot = ellipsoid_im(ig, ...
-    [-40 30 50  20 20 25    0 0 1;
-    ], 'oversample', 1);
-coldspot = ellipsoid_im(ig, ...
-    [-90 -10 60  20 20 25    0 0 1;
-    ], 'oversample', 1);
-hliver = liver - hotspot - coldspot;
-hliver(hliver < 0) = 0;
-se = strel('arbitrary',eye(2));
-eliver = imerode(hliver,se);
-
-% true image 
-xtrue = double(liver + 4*hotspot - coldspot + 0.04*lung);
-xtrue(xtrue < 0) = 0;
-
-% system model
-f.dir = test_dir;
-f.dsc = [test_dir 't.dsc'];
-f.wtr = strrep(f.dsc, 'dsc', 'wtr');
-f.mask = [test_dir 'mask.fld'];
-fld_write(f.mask, ig.mask)
-
-tmp = Gtomo2_wtmex(sg, ig, 'mask', ig.mask_or);
-
-[tmp dum dum dum dum is_transpose] = ...
-    wtfmex('asp:mat', tmp.arg.buff, int32(0));
-if is_transpose
-    tmp = tmp'; % because row grouped
-end
-delete(f.wtr)
-wtf_write(f.wtr, tmp, ig.nx, ig.ny, sg.nb, sg.na, 'row_grouped', 1)
-
-f.sys_type = sprintf('2z@%s@-', f.wtr);
-
-
-
-load('PET128.mat') % we use matrix E for 128x128 design
-d = 128;  %Number of detectors
-N = 128;  %Image is NxN
-p = N^2;  %Number of pixels
-q = d*(d-1)/2;  %number of detector pairs
-
-% created noisy count data based on our E matrix
-xtrue_2d = squeeze(xtrue(:, :, 66));
-mumap_2d = squeeze(mumap(:, :, 66));
-ytrue = E * reshape(double(xtrue_2d), [p, 1]);
-li = E * reshape(double(mumap_2d), [p,1]);
-ci = exp(-li);
-ci = ci * f.counts / sum(col(ci.*ytrue));
-ytrue = ci .* ytrue; 
-ri = ones(size(ytrue)) * f.scatter_percent / 100 * mean(ytrue(:));
-ci = ones(size(ri));
-y = poisson(ytrue + ri);
-
-
-
-iters = 10000;
+iters = 1000;
 useGPU = true;
 lambda = 0.001;
 
@@ -129,10 +132,9 @@ y = toGPU(double(y));
 
 
 %NCS experiment
-alpha = 0.002;
-beta = 0.002;
-gamma = 0.001;
-
+alpha = 0.001;
+beta = 0.001;
+gamma = 0.0001;
 
 
 vx = toGPU(zeros(N,N));
@@ -146,8 +148,8 @@ u = toGPU(zeros(q,1));
 [kk,ll] = meshgrid(0:(N-1),0:(N-1));
 kk = toGPU(kk);
 ll = toGPU(ll);
-H =  gamma*ones(N,N) + alpha * 64./(sqrt(min(kk,N-kk).^2+min(ll,N-ll).^2))  + beta^2/alpha*(4*(sin(kk*pi/N)).^2+4*(sin(ll*pi/N)).^2);
-H(1,1)=1/(10);
+H =  gamma*ones(N,N) + alpha * 10./(sqrt(min(kk,N-kk).^2+min(ll,N-ll).^2))  + 4*beta^2/alpha*((sin(kk*pi/N)).^2+(sin(ll*pi/N)).^2);
+H(1,1)=1/(100);
 H = 1./H;
 %how to handle the DC component is important
 
@@ -155,16 +157,14 @@ err_vec_NCS = zeros(iters,1);
 
 tic
 for ii=1:iters
-    disp(ii)
-    xprime = x;
-    
+    %disp(ii)
+    xprime = x; %save previous iterate
     
     Dpv = vx+vy;
     Dpv(1:N,2:N) = Dpv(1:N,2:N) - vx(1:N,1:(N-1));
     Dpv(2:N,1:N) = Dpv(2:N,1:N) - vy(1:(N-1),1:N);
     
     yy =reshape(Et*u,[N,N])+beta/alpha*Dpv;
-    
     x = x-real(ifft2(H.*fft2(yy)));
     
     
@@ -183,9 +183,11 @@ for ii=1:iters
     
     vv=max(E*reshape(x, [p,1]),1e-50);
     err_vec_NCS(ii)=gather(sum(vv-y.*log(vv)))+gather(lambda*(sum(sum(abs(x(1:N,1:(N-1))-x(1:N,2:N))))+sum(sum(abs(x(1:(N-1),1:N)-x(2:N,1:N))))));
+    %disp(err_vec_NCS(ii))
 end
 toc
 x_ncs = gather(x);
+clear x u vx vy
 
 
 
@@ -201,27 +203,19 @@ rng(999)
 x = toGPU(100*rand(N,N));
 u = toGPU(zeros(q,1));
 
-
-H =  gamma*ones(N,N);
-H = 1./H;
-
-
 err_vec_PDHG = zeros(iters,1);
 
 tic
 for ii=1:iters
-    disp(ii)
-    xprime = x;
-    
+    %disp(ii)
+    xprime = x; %save previous iterate
     
     Dpv = vx+vy;
     Dpv(1:N,2:N) = Dpv(1:N,2:N) - vx(1:N,1:(N-1));
     Dpv(2:N,1:N) = Dpv(2:N,1:N) - vy(1:(N-1),1:N);
     
     yy =reshape(Et*u,[N,N])+beta/alpha*Dpv;
-    
     x = x-1/gamma*yy;
-    
     
     xprime = 2*x-xprime;
     
@@ -237,13 +231,15 @@ for ii=1:iters
     
     vv=max(E*reshape(x, [p,1]),1e-50);
     err_vec_PDHG(ii)=gather(sum(vv-y.*log(vv)))+gather(lambda*(sum(sum(abs(x(1:N,1:(N-1))-x(1:N,2:N))))+sum(sum(abs(x(1:(N-1),1:N)-x(2:N,1:N))))));
-    disp(err_vec_PDHG(ii))
+    %disp(err_vec_PDHG(ii))
 end
+toc
 x_pdhg = gather(x);
+clear x u vx vy
 
 
 
-
+%ADMM experiment
 alpha = 0.0003;
 beta = 0.3;
 
@@ -269,15 +265,14 @@ err_vec_ADMM = [];
 inner_iters = 0;
 tic
 for ii=1:(iters/10)
-    disp(ii)
-    %save previous iterate
-    xprime = x;
+    %disp(ii)
+    xprime = x; %save previous iterate
     
     Dpv = compute_Dpv(vx-etavx, vy-etavy, N);
     
     Gx = reshape(Et * u, [N, N]) + beta * Dpv;
-    % now solve for x.
     
+    %solve for x
     [x, kk] = cgsolve(x, Gx, N, E, Et, beta, useGPU, H);
     
     inner_iters = inner_iters + kk;
@@ -305,24 +300,69 @@ for ii=1:(iters/10)
     iter_vec = [iter_vec inner_iters];
     vv=max(E*reshape(x, [p,1]),1e-50);
     err_vec_ADMM = [err_vec_ADMM, gather(sum(vv-y.*log(vv)))+gather(lambda*(sum(sum(abs(x(1:N,1:(N-1))-x(1:N,2:N))))+sum(sum(abs(x(1:(N-1),1:N)-x(2:N,1:N))))))];
-    disp(err_vec_ADMM(end))
+    %disp(err_vec_ADMM(end))
 end
 toc
 x_admm = gather(x);
 
 
 
-x_ncs = x_ncs - min(min(x_ncs));
-x_pdhg = x_pdhg - min(min(x_pdhg));
-x_admm = x_admm - min(min(x_admm));
+%%
+close all;
+minval = min([min(err_vec_NCS),min(err_vec_PDHG),min(err_vec_ADMM)]);
+loglog(1:length(err_vec_NCS),err_vec_NCS-minval,'k','LineWidth',2)
+
+hold on;
+loglog(1:length(err_vec_PDHG),err_vec_PDHG-minval,'r--','LineWidth',2)
+loglog(iter_vec,err_vec_ADMM-minval,'b:','LineWidth',2)
+
+
+legend('NCS','PDHG','ADMM')
+xlabel('Iterations')
+ylabel('Objective value suboptimality')
+
+pbaspect([2.5 1 1])
+%ylim([1e3,3e8])
+
+ax = gca;
+ax.OuterPosition(3)=ax.OuterPosition(4);
+outerpos = ax.OuterPosition;
+ti = ax.TightInset; 
+left = outerpos(1) + ti(1);
+bottom = outerpos(2) + ti(2);
+ax_width = outerpos(3) - ti(1) - ti(3);
+ax_height = outerpos(4) - ti(2) - ti(4);
+ax.Position = [left bottom ax_width ax_height*1.1];
+
+set(gcf, 'Position', [100, 100, 700, 320])
+title('PET experiments')
+%myprint('CT_conv.pdf')
+
+%%
 maxval = max([max(max(x_ncs)),max(max(x_pdhg)),max(max(x_admm))]);
+x_ncs_scaled = gather( x_ncs/maxval );
+x_pdhg_scaled = gather( x_pdhg/maxval );
+x_admm_scaled = gather( x_admm/maxval );
 
-imwrite(x_ncs/maxval, 'PET_NCS.png');
-imwrite(x_pdhg/maxval, 'PET_PDHG.png');
-imwrite(x_pdhg/maxval, 'PET_ADMM.png');
+figure
+subplot(1,3,1)
+imshow(x_ncs_scaled)
+title('PET (NCS)')
+subplot(1,3,2)
+imshow(x_pdhg_scaled)
+title('PET (PDHG)')
+subplot(1,3,3)
+imshow(x_admm_scaled)
+title('PET (ADMM)')
+
+set(gcf, 'Position', [100, 100, 800, 300])
+
+imwrite(x_ncs_scaled, 'pet_ncs.png');
+imwrite(x_pdhg_scaled, 'pet_pdhg.png');
+imwrite(x_admm_scaled, 'pet_admm.png');
 
 
-
+%%
 function [Dxx, Dxy] = compute_Dx(x, N, useGPU)
   Dxx = zeros(N, N);
   Dxy = zeros(N, N);
@@ -346,9 +386,9 @@ end
 function [x, kk] = cgsolve(xin, b, N, E, Et, beta, useGPU, precond)
   x = xin+0.0001;
   r = b - compute_Gx(x, N, E, Et, beta, useGPU);
-  rsold = sum(sum(r.^2));
-  precond = precond;
-  %p = r;
+  rsold = sum(sum(r.^2));  %XXX Is this needed? XXX
+  precond = precond;     %XXX Is this needed? XXX
+  %p = r;    %XXX Is this needed? XXX
   p = real(ifft2(fft2(r).*precond));
   z = p;
   rtz = sum(sum(r.*z));
@@ -362,7 +402,7 @@ function [x, kk] = cgsolve(xin, b, N, E, Et, beta, useGPU, precond)
     if sqrt(rsnew) < 1e-5
       break;
     end
-    %z = r;
+    %z = r;  %XXX Is this needed? XXX
     z = real(ifft2(fft2(r).*precond));
     rtzold = rtz;
     rtz = sum(sum(r.*z));

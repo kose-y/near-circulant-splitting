@@ -1,3 +1,7 @@
 3D_sino_true.mat
 *.ipynb
 
+data/mayo_clinic_image.jpg
+*.png
+*.asv
+*.png

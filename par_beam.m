@@ -5,7 +5,7 @@ xtrue = double(xtrue(:, :, 1));
 %xtrue = phantom('Modified Shepp-Logan',N);
 
 lambda = 1;
-iters = 1000;
+iters = 100000;
 useGPU = true;
 
 if useGPU
@@ -177,11 +177,12 @@ end
 toc
 x_admm = x;
 
+save('par_beam_results.mat','err_vec_PDHG','err_vec_NCS','err_vec_ADMM','iter_vec')
 
 
 %%
-
-close all;
+close all; clear all;
+load('par_beam_results.mat')
 minval = min([min(err_vec_NCS),min(err_vec_PDHG),min(err_vec_ADMM)]);
 loglog(1:length(err_vec_NCS),err_vec_NCS-minval,'k','LineWidth',2)
 
@@ -193,7 +194,7 @@ legend('NCS','PDHG','ADMM')
 xlabel('Iterations')
 ylabel('Objective value suboptimality')
 
-pbaspect([2.5 1 1])
+pbaspect([2 1 1])
 %ylim([1e3,3e8])
 
 ax = gca;
@@ -206,7 +207,7 @@ ax_width = outerpos(3) - ti(1) - ti(3);
 ax_height = outerpos(4) - ti(2) - ti(4);
 ax.Position = [left bottom ax_width ax_height*1.1];
 
-set(gcf, 'Position', [100, 100, 700, 320])
+set(gcf, 'Position', [100, 100, 500, 290])
 
 title('Parallel beam experiments')
 saveas(gcf,'par_plot.png')

@@ -5,3 +5,6 @@ data/mayo_clinic_image.jpg
 *.png
 *.asv
 *.png
+fan_beam_results.mat
+par_beam_results.mat
+pet_results.mat

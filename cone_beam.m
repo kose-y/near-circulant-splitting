@@ -55,20 +55,6 @@ else
 end
 
 
-
-%x_ncs = CT_3D(420, 96, 200, 1, 0.001, 0.1, 0.001, sino, A, mask, H);
-
-% x_pdhg = CT_3D(420, 96, 200, 1, 0.001, 0.1, 0.3, sino, A, mask, false);
-% 
-% x_pdhg = CT_3D(420, 96, 200, 1, 0.001, 0.1, 1, sino, A, mask, false);
-% 
-% x_pdhg = CT_3D(420, 96, 200, 1, 0.001, 0.1, 3, sino, A, mask, false);
-% 
-% 
-% x_pdhg = CT_3D(420, 96, 200, 1, 0.001, 0.1, 10, sino, A, mask, false);
-
-%%
-
 N = 420;
 M=96;
 iters = 1000;
@@ -120,13 +106,6 @@ for ii=1:iters
     
     err_vec_NCS(ii) = (1/2)*gather(sum(sum(sum((A*x(mask(:))-sino).^2)))) + lambda*gather(sum(sum(sum(abs(x(1:N,1:(N-1),1:M)-x(1:N,2:N,1:M)))))+sum(sum(sum(abs(x(1:(N-1),1:N,1:M)-x(2:N,1:N,1:M)))))+sum(sum(sum(abs(x(1:N,1:N,1:(M-1))-x(1:N,1:N,2:M))))));
     disp(err_vec_NCS(ii))
-%     if mod(ii, 10) == 0
-%         disp((1/2)*gather(sum(sum(sum((A*x(mask(:))-sino).^2)))))
-%         disp(lambda*gather(sum(sum(sum(abs(x(1:N,1:(N-1),1:M)-x(1:N,2:N,1:M)))))+sum(sum(sum(abs(x(1:(N-1),1:N,1:M)-x(2:N,1:N,1:M)))))+sum(sum(sum(abs(x(1:N,1:N,1:(M-1))-x(1:N,1:N,2:M)))))));
-%     end
-
-
-
 end
 toc
 x_ncs = x;
@@ -170,13 +149,6 @@ for ii=1:iters
     
     err_vec_PDHG(ii) = (1/2)*gather(sum(sum(sum((A*x(mask(:))-sino).^2)))) + lambda*gather(sum(sum(sum(abs(x(1:N,1:(N-1),1:M)-x(1:N,2:N,1:M)))))+sum(sum(sum(abs(x(1:(N-1),1:N,1:M)-x(2:N,1:N,1:M)))))+sum(sum(sum(abs(x(1:N,1:N,1:(M-1))-x(1:N,1:N,2:M))))));
     disp(err_vec_PDHG(ii))
-%     if mod(ii, 10) == 0
-%         disp((1/2)*gather(sum(sum(sum((A*x(mask(:))-sino).^2)))))
-%         disp(lambda*gather(sum(sum(sum(abs(x(1:N,1:(N-1),1:M)-x(1:N,2:N,1:M)))))+sum(sum(sum(abs(x(1:(N-1),1:N,1:M)-x(2:N,1:N,1:M)))))+sum(sum(sum(abs(x(1:N,1:N,1:(M-1))-x(1:N,1:N,2:M)))))));
-%     end
-
-
-
 end
 toc
 x_pdhg = x;
@@ -252,32 +224,17 @@ for ii=1:(iters/10)
     iter_vec = [iter_vec inner_iters];
     err_vec_ADMM = [err_vec_ADMM, (1/2)*gather(sum(sum(sum((A*x(mask(:))-sino).^2)))) + lambda*gather(sum(sum(sum(abs(x(1:N,1:(N-1),1:M)-x(1:N,2:N,1:M)))))+sum(sum(sum(abs(x(1:(N-1),1:N,1:M)-x(2:N,1:N,1:M)))))+sum(sum(sum(abs(x(1:N,1:N,1:(M-1))-x(1:N,1:N,2:M))))))];
     disp(err_vec_ADMM(ii))
-    
-%     if mod(inner_iters, 10) == 0
-%         disp((1/2)*gather(sum(sum(sum((A*x(mask(:))-sino).^2)))))
-%         disp(lambda*gather(sum(sum(sum(abs(x(1:N,1:(N-1),1:M)-x(1:N,2:N,1:M)))))+sum(sum(sum(abs(x(1:(N-1),1:N,1:M)-x(2:N,1:N,1:M)))))+sum(sum(sum(abs(x(1:N,1:N,1:(M-1))-x(1:N,1:N,2:M)))))));
-%     end
-% 
-% 
-%     if mod(inner_iters, 10) == 0
-%         disp(inner_iters)
-%         filename_x = sprintf('admm_%03d_x.png', ii);
-%         filename_y = sprintf('admm_%03d_y.png', ii);
-%         filename_z = sprintf('admm_%03d_z.png', ii);
-%         imwrite(squeeze(x(210,:,:))'/1.7e+03, filename_x);
-%         imwrite(squeeze(x(:,210,:))'/1.7e+03, filename_y);
-%         imwrite(x(:,:,66)/1.7e+03, filename_z);
-%     end
-    
 end
 
 toc
 x_admm = x;
 
 save('cone_beam_results.mat','err_vec_PDHG','err_vec_NCS','err_vec_ADMM','iter_vec')
+save('cone_beam_images.mat','x_pdhg','x_ncs','x_admm');
 
 %%
-close all;
+close all; clear all;
+load('cone_beam_results.mat')
 minval = min([min(err_vec_NCS),min(err_vec_PDHG),min(err_vec_ADMM)]);
 loglog(1:length(err_vec_NCS),err_vec_NCS-minval,'k','LineWidth',2)
 
@@ -308,6 +265,8 @@ title('Cone beam experiments')
 saveas(gcf,'cone_plot.png')
 
 %%
+load('cone_beam_images.mat')
+%%
 function [x, kk] = cgsolve(xin, b, N, M, A, mask, beta, precond)
   x = xin;
   r = b - compute_Gx(x, N, M, A, mask, beta);
@@ -328,9 +287,7 @@ function [x, kk] = cgsolve(xin, b, N, M, A, mask, beta, precond)
     rtz = sum(sum(sum(r .* z)));
     beta = rtz / rtzold;
     p = z + beta * p;
-    
-    %disp(sum(sum(sum((compute_Gx(x, N, M, A, mask, beta) - b).^2))))
-  end
+      end
 end
 
 function Gx = compute_Gx(x, N, M, A, mask, beta)

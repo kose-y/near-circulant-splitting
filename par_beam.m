@@ -5,7 +5,7 @@ xtrue = double(xtrue(:, :, 1));
 %xtrue = phantom('Modified Shepp-Logan',N);
 
 lambda = 1;
-iters = 100000;
+iters = 100;
 useGPU = true;
 
 if useGPU
@@ -205,7 +205,7 @@ left = outerpos(1) + ti(1);
 bottom = outerpos(2) + ti(2);
 ax_width = outerpos(3) - ti(1) - ti(3);
 ax_height = outerpos(4) - ti(2) - ti(4);
-ax.Position = [left bottom ax_width ax_height*1.1];
+ax.Position = [left*1.1 bottom ax_width*.98 ax_height*1.1];
 
 set(gcf, 'Position', [100, 100, 500, 290])
 

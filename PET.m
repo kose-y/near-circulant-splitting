@@ -115,7 +115,7 @@ else
     load('data/PET_data.mat')
 end
 
-iters = 1000000;
+iters = 1000;
 useGPU = true;
 lambda = 0.001;
 

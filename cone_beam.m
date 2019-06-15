@@ -82,8 +82,7 @@ H = 1./H;
 err_vec_NCS = zeros(iters,1);
 tic
 for ii=1:iters
-    
-    disp(ii)
+    %disp(ii)
     xprime = x;
     
     Dpv = vx+vy+vz;
@@ -103,9 +102,8 @@ for ii=1:iters
     vy(1:(N-1),1:N,1:M) = max(min(vy(1:(N-1),1:N,1:M) + beta*(xprime(1:(N-1),1:N,1:M)-xprime(2:N,1:N,1:M)),lambda*alpha/beta),-lambda*alpha/beta);
     vz(1:N,1:N,1:(M-1)) = max(min(vz(1:N,1:N,1:(M-1)) + beta*(xprime(1:N,1:N,1:(M-1))-xprime(1:N,1:N,2:M)),lambda*alpha/beta),-lambda*alpha/beta);
 
-    
     err_vec_NCS(ii) = (1/2)*gather(sum(sum(sum((A*x(mask(:))-sino).^2)))) + lambda*gather(sum(sum(sum(abs(x(1:N,1:(N-1),1:M)-x(1:N,2:N,1:M)))))+sum(sum(sum(abs(x(1:(N-1),1:N,1:M)-x(2:N,1:N,1:M)))))+sum(sum(sum(abs(x(1:N,1:N,1:(M-1))-x(1:N,1:N,2:M))))));
-    disp(err_vec_NCS(ii))
+    %disp(err_vec_NCS(ii))
 end
 toc
 x_ncs = x;
@@ -126,8 +124,7 @@ vz = zeros(N,N,M);
 err_vec_PDHG = zeros(iters,1);
 tic
 for ii=1:iters
-    
-    disp(ii)
+    %disp(ii)
     xprime = x;
     
     Dpv = vx+vy+vz;
@@ -146,9 +143,8 @@ for ii=1:iters
     vy(1:(N-1),1:N,1:M) = max(min(vy(1:(N-1),1:N,1:M) + beta*(xprime(1:(N-1),1:N,1:M)-xprime(2:N,1:N,1:M)),lambda*alpha/beta),-lambda*alpha/beta);
     vz(1:N,1:N,1:(M-1)) = max(min(vz(1:N,1:N,1:(M-1)) + beta*(xprime(1:N,1:N,1:(M-1))-xprime(1:N,1:N,2:M)),lambda*alpha/beta),-lambda*alpha/beta);
 
-    
     err_vec_PDHG(ii) = (1/2)*gather(sum(sum(sum((A*x(mask(:))-sino).^2)))) + lambda*gather(sum(sum(sum(abs(x(1:N,1:(N-1),1:M)-x(1:N,2:N,1:M)))))+sum(sum(sum(abs(x(1:(N-1),1:N,1:M)-x(2:N,1:N,1:M)))))+sum(sum(sum(abs(x(1:N,1:N,1:(M-1))-x(1:N,1:N,2:M))))));
-    disp(err_vec_PDHG(ii))
+    %disp(err_vec_PDHG(ii))
 end
 toc
 x_pdhg = x;
@@ -185,8 +181,7 @@ H = ones(N, N, M);
 
 tic
 for ii=1:(iters/10)
-    
-    disp(ii)
+    %disp(ii)
     xprime = x;
 
     Dpv = compute_Dpv(vx - etavx, vy - etavy, vz - etavz, N, M);
@@ -223,19 +218,18 @@ for ii=1:(iters/10)
     
     iter_vec = [iter_vec inner_iters];
     err_vec_ADMM = [err_vec_ADMM, (1/2)*gather(sum(sum(sum((A*x(mask(:))-sino).^2)))) + lambda*gather(sum(sum(sum(abs(x(1:N,1:(N-1),1:M)-x(1:N,2:N,1:M)))))+sum(sum(sum(abs(x(1:(N-1),1:N,1:M)-x(2:N,1:N,1:M)))))+sum(sum(sum(abs(x(1:N,1:N,1:(M-1))-x(1:N,1:N,2:M))))))];
-    disp(err_vec_ADMM(ii))
+    %disp(err_vec_ADMM(ii))
 end
-
 toc
 x_admm = x;
 
+
 save('cone_beam_results.mat','err_vec_PDHG','err_vec_NCS','err_vec_ADMM','iter_vec')
 save('cone_beam_images.mat','x_pdhg','x_ncs','x_admm');
-
 %%
 close all; clear all;
 load('cone_beam_results.mat')
-minval = min([min(err_vec_NCS),min(err_vec_PDHG),min(err_vec_ADMM)]);
+minval = min([min(err_vec_NCS),min(err_vec_PDHG),min(err_vec_ADMM)])-(1e8);
 loglog(1:length(err_vec_NCS),err_vec_NCS-minval,'k','LineWidth',2)
 
 hold on;
@@ -244,11 +238,11 @@ loglog(iter_vec,err_vec_ADMM-minval,'b:','LineWidth',2)
 
 
 legend('NCS','PDHG','ADMM')
-xlabel('Iterations')
-ylabel('Objective value suboptimality')
+%xlabel('Iterations')
+%ylabel('Objective value suboptimality')
 
-pbaspect([2.5 1 1])
-%ylim([1e3,3e8])
+pbaspect([2 1 1])
+ylim([1e7,1e15])
 
 ax = gca;
 ax.OuterPosition(3)=ax.OuterPosition(4);
@@ -258,14 +252,53 @@ left = outerpos(1) + ti(1);
 bottom = outerpos(2) + ti(2);
 ax_width = outerpos(3) - ti(1) - ti(3);
 ax_height = outerpos(4) - ti(2) - ti(4);
-ax.Position = [left bottom ax_width ax_height*1.1];
+ax.Position = [left*1.1 bottom ax_width*.98 ax_height*1.1];
 
-set(gcf, 'Position', [100, 100, 700, 320])
-title('Cone beam experiments')
+set(gcf, 'Position', [100, 100, 500, 290])
+%title('Cone beam experiments')
 saveas(gcf,'cone_plot.png')
 
 %%
+close all; clear all;
 load('cone_beam_images.mat')
+x_ncs_img = zeros(420+96,420+96);
+x_ncs_img(1:420,1:420) = x_ncs(:,:,66);
+x_ncs_img(1:420,421:(420+96)) = squeeze(x_ncs(:,210,:));
+x_ncs_img(421:(420+96),1:420) = squeeze(x_ncs(210,:,:))';
+x_ncs_img = x_ncs_img/1.7e+03;
+
+x_pdhg_img = zeros(420+96,420+96);
+x_pdhg_img(1:420,1:420) = x_pdhg(:,:,66);
+x_pdhg_img(1:420,421:(420+96)) = squeeze(x_pdhg(:,210,:));
+x_pdhg_img(421:(420+96),1:420) = squeeze(x_pdhg(210,:,:))';
+x_pdhg_img = x_pdhg_img/1.7e+03;
+
+
+x_admm_img = zeros(420+96,420+96);
+x_admm_img(1:420,1:420) = x_admm(:,:,66);
+x_admm_img(1:420,421:(420+96)) = squeeze(x_admm(:,210,:));
+x_admm_img(421:(420+96),1:420) = squeeze(x_admm(210,:,:))';
+x_admm_img = x_admm_img/1.7e+03;
+
+
+figure
+subplot(1,3,1)
+imshow(x_ncs_img)
+title('Cone beam (NCS)')
+subplot(1,3,2)
+imshow(x_pdhg_img)
+title('Cone beam (PDHG)')
+subplot(1,3,3)
+imshow(x_admm_img)
+title('Cone beam (ADMM)')
+
+set(gcf, 'Position', [100, 100, 800, 300])
+
+imwrite(x_ncs_img, 'cone_beam_ncs.png');
+imwrite(x_pdhg_img, 'cone_beam_pdhg.png');
+imwrite(x_admm_img, 'cone_beam_admm.png');
+
+
 %%
 function [x, kk] = cgsolve(xin, b, N, M, A, mask, beta, precond)
   x = xin;

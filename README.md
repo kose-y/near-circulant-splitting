@@ -3,7 +3,6 @@
 This code implements the experiments for [`reference`](https://epubs.siam.org/doi/abs/10.1137/18M1224003) (click [`here`](https://arxiv.org/abs/1810.13100) for Arxiv preprint).
 
 > [1] E. K. Ryu, S. Ko, J.-H. Won (2020). "Splitting with Near-Circulant Linear Systems: Applications to Total Variation CT and PET," _SIAM Journal of Scientific Computing_, 42(1), B185-B206.
-Date:  June 14, 2019
 
 #### Authors
 - [**Ernest K. Ryu**](http://www.math.ucla.edu/~eryu/)
